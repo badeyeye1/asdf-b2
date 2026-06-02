@@ -31,7 +31,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run shellcheck on plugin scripts
-        run: shellcheck bin/* lib/*.bash
+        # Only check the entry-point scripts (bin/*); -x makes
+        # shellcheck follow source directives into lib/utils.bash and
+        # -P SCRIPTDIR resolves those hints relative to each script's
+        # directory. Checking lib/utils.bash directly would re-analyze
+        # it in isolation and SC2034-false-positive on the `readonly`
+        # constants that are only used in the bin/ scripts that source
+        # the lib. Cross-file analysis via -x catches what we need.
+        run: shellcheck -x -P SCRIPTDIR bin/*
 
   # ---------------------------------------------------------------
   # actionlint: lint workflow YAML itself. Cheap; catches typos in
@@ -72,6 +79,13 @@ jobs:
         with:
           command: b2 version
           version: latest
+          # Pin to the last bash-implemented asdf. asdf v0.16+ rewrote
+          # the binary in Go; cloning that branch produces source code,
+          # not an executable, and the plugin-test action exec's `asdf`
+          # directly. Until asdf-vm/actions ships a v4 that builds Go-
+          # asdf (or shells to the released binary), pinning the legacy
+          # branch is the supported path.
+          asdf_branch: v0.14.1
 
   # ---------------------------------------------------------------
   # ci-success: aggregator. Required check in branch protection;
