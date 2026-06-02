@@ -31,7 +31,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run shellcheck on plugin scripts
-        run: shellcheck bin/* lib/*.bash
+        # -x makes shellcheck follow `source` directives (see the
+        # `# shellcheck source=../lib/utils.bash` hints in each bin/
+        # script). Without -x, SC1091 fires on every `source` line and
+        # SC2034 false-positives on `readonly` constants from
+        # lib/utils.bash that are only used in the sourcing scripts.
+        run: shellcheck -x bin/* lib/*.bash
 
   # ---------------------------------------------------------------
   # actionlint: lint workflow YAML itself. Cheap; catches typos in
@@ -72,6 +77,13 @@ jobs:
         with:
           command: b2 version
           version: latest
+          # Pin to the last bash-implemented asdf. asdf v0.16+ rewrote
+          # the binary in Go; cloning that branch produces source code,
+          # not an executable, and the plugin-test action exec's `asdf`
+          # directly. Until asdf-vm/actions ships a v4 that builds Go-
+          # asdf (or shells to the released binary), pinning the legacy
+          # branch is the supported path.
+          asdf_branch: v0.14.1
 
   # ---------------------------------------------------------------
   # ci-success: aggregator. Required check in branch protection;
