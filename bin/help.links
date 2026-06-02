@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+cat <<'EOF'
+- Upstream: https://github.com/Backblaze/B2_Command_Line_Tool
+- Releases: https://github.com/Backblaze/B2_Command_Line_Tool/releases
+- B2 docs:  https://www.backblaze.com/docs/cloud-storage-command-line-tools
+EOF

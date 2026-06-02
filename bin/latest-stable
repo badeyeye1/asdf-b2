@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# shellcheck source=../lib/utils.bash
+source "$(dirname "$0")/../lib/utils.bash"
+
+# Print the highest non-prerelease version. Backblaze marks prereleases
+# with dashes (e.g., 4.0.0-rc1) or trailing b<N> (e.g., 3.19.0b1).
+list_all_versions \
+  | grep -Ev '(-|b[0-9]+$)' \
+  | tail -n1

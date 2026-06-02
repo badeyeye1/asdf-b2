@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# shellcheck source=../lib/utils.bash
+source "$(dirname "$0")/../lib/utils.bash"
+
+# asdf provides:
+#   ASDF_INSTALL_TYPE     — "version" or "ref"
+#   ASDF_INSTALL_VERSION  — the version string (no leading v)
+#   ASDF_INSTALL_PATH     — final installation directory
+#   ASDF_DOWNLOAD_PATH    — where bin/download wrote the artifact
+
+if [[ "${ASDF_INSTALL_TYPE}" != "version" ]]; then
+  fail "only the 'version' install type is supported (got: ${ASDF_INSTALL_TYPE})"
+fi
+
+readonly install_path="${ASDF_INSTALL_PATH}"
+readonly download_path="${ASDF_DOWNLOAD_PATH}"
+
+readonly src="${download_path}/${BIN_NAME}"
+readonly dst_dir="${install_path}/bin"
+readonly dst="${dst_dir}/${BIN_NAME}"
+
+if [[ ! -f "${src}" ]]; then
+  fail "expected downloaded binary at ${src} — did bin/download run successfully?"
+fi
+
+mkdir -p "${dst_dir}"
+install -m 0755 "${src}" "${dst}"
+
+echo "asdf-${TOOL_NAME}: installed b2 v${ASDF_INSTALL_VERSION} at ${dst}"

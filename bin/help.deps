@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+cat <<'EOF'
+- curl  (downloads the b2 binary)
+- git   (lists available versions via git ls-remote)
+EOF

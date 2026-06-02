@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+cat <<'EOF'
+asdf plugin for the Backblaze B2 command-line tool.
+
+Installs the official pre-built `b2` binary from Backblaze's
+B2_Command_Line_Tool GitHub releases. No Python toolchain required —
+the binaries are self-contained PyInstaller bundles.
+EOF

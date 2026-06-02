@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# Directories (relative to ASDF_INSTALL_PATH) that asdf should add to
+# the shim PATH when this version is active. b2 is a single binary
+# under bin/.
+echo "bin"
