@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel in-progress runs when a new commit lands on the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# The graph:
+#
+#   shellcheck   ─┐
+#   actionlint   ─┼── ci-success  (aggregator; the only required check)
+#   plugin-test  ─┘
+#
+# Branch protection requires `ci-success`, not the individuals.
+
+jobs:
+  # ---------------------------------------------------------------
+  # shellcheck: static analysis on every bash file under bin/ and lib/.
+  # ---------------------------------------------------------------
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run shellcheck on plugin scripts
+        run: shellcheck bin/* lib/*.bash
+
+  # ---------------------------------------------------------------
+  # actionlint: lint workflow YAML itself. Cheap; catches typos in
+  # action names, expression syntax, and matrix mistakes.
+  # ---------------------------------------------------------------
+  actionlint:
+    name: Actionlint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: reviewdog/action-actionlint@v1
+        with:
+          reporter: github-check
+          level: error
+          fail_level: error
+
+  # ---------------------------------------------------------------
+  # plugin-test: install the plugin against the current upstream
+  # release on each supported runtime architecture, and verify the
+  # installed `b2` binary actually runs.
+  #
+  # This is the test that catches the failure mode the article 0006
+  # is about: if Backblaze renames an asset or drops a platform, this
+  # job goes red before the plugin ships a broken install to anyone.
+  # ---------------------------------------------------------------
+  plugin-test:
+    name: Plugin test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04        # x86_64 — asset b2-linux
+          - ubuntu-24.04-arm    # aarch64 — asset b2-linux-aarch64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: asdf-vm/actions/plugin-test@v3
+        with:
+          command: b2 version
+          version: latest
+
+  # ---------------------------------------------------------------
+  # ci-success: aggregator. Required check in branch protection;
+  # passes only when every dependency passed. Lets the protection
+  # rule depend on one name instead of N.
+  # ---------------------------------------------------------------
+  ci-success:
+    name: CI
+    if: always()
+    needs: [shellcheck, actionlint, plugin-test]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Verify all jobs succeeded
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') }}" = "true" ]; then
+            echo "One or more required jobs failed."
+            exit 1
+          fi
+          if [ "${{ contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "One or more required jobs were cancelled."
+            exit 1
+          fi
+          echo "All jobs passed."
