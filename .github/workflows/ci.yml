@@ -31,12 +31,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run shellcheck on plugin scripts
-        # -x makes shellcheck follow `source` directives (see the
-        # `# shellcheck source=../lib/utils.bash` hints in each bin/
-        # script). Without -x, SC1091 fires on every `source` line and
-        # SC2034 false-positives on `readonly` constants from
-        # lib/utils.bash that are only used in the sourcing scripts.
-        run: shellcheck -x bin/* lib/*.bash
+        # -x makes shellcheck follow `source` directives.
+        # -P SCRIPTDIR resolves the `source=../lib/utils.bash` hints
+        # relative to each script's own directory (so `bin/*` finds
+        # `bin/../lib/utils.bash` = `lib/utils.bash`). Without -P,
+        # the default base is shellcheck's CWD (repo root), which
+        # resolves `../lib/utils.bash` to one above the repo — wrong.
+        # Together these silence SC1091 (cannot follow source) and
+        # SC2034 (readonly vars from utils.bash appearing unused
+        # because shellcheck couldn't see the call sites).
+        run: shellcheck -x -P SCRIPTDIR bin/* lib/*.bash
 
   # ---------------------------------------------------------------
   # actionlint: lint workflow YAML itself. Cheap; catches typos in
